@@ -15,8 +15,9 @@ using i64 = int64_t;
 
 // set 1 GB file size limit.
 // files below this limit may be loaded into memory
-static const size_t FILE_SIZE_LIMIT = 1024 * 1024 * 1024;
+static const size_t FILE_SIZE_LIMIT = 512 * 1024 * 1024;
 static const size_t CHUNK_SIZE = 16384;
+static const size_t THREAD_LIMIT = 500;
 static std::mutex fread_mutex;
 static std::mutex format_mutex;
 
@@ -68,6 +69,9 @@ std::vector<MatchInfo> process_small_file(const fs::directory_entry& entry, cons
 }
 
 void read_chunk(std::ifstream& stream, const std::string& target, const std::string& path, const i64 curr_chunk_size) {
+    if (curr_chunk_size < 0) {
+        return;
+    }
     std::string chunk;
     chunk.resize(curr_chunk_size);
     fread_mutex.lock();
@@ -100,10 +104,14 @@ std::vector<MatchInfo> process_large_file(const fs::directory_entry& entry, cons
         thread_pool.push_back(
             std::thread(read_chunk, std::ref(stream), target, path_str, curr_chunk_size)
         );
+        if (thread_pool.size() > THREAD_LIMIT) {
+            for (auto &thread : thread_pool) {
+                thread.join();
+            }
+            thread_pool.clear();
+        }
     }
 
-    std::cout << "got here\n";
-    std::this_thread::sleep_for(std::chrono::seconds(2));
     for (auto &thread : thread_pool) {
         thread.join();
     }
@@ -158,8 +166,13 @@ int main(int argc, const char* argv[]) {
         std::cerr << "usage: prog <path> <string_to_match>\n";
         return -1;
     }
-    std::string path = argv[1];
+    std::string path   = argv[1];
     std::string target = argv[2];
+
+    if (!fs::exists(path)) {
+        std::cerr << "path " << path << " does not exist";
+        return -1;
+    }
 
     if (fs::is_directory(path)) {
         for (const auto &entry: fs::recursive_directory_iterator(path)) {
@@ -174,5 +187,7 @@ int main(int argc, const char* argv[]) {
         const auto vec = process(fs::directory_entry(path), target);
         format_output(vec, target);
     }
+
+    return 0;
 }
 
