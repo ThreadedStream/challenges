@@ -4,11 +4,12 @@ use libc::ptrace_syscall_info;
 use libc_print::{libc_eprint};
 use crate::kassert;
 
+static PTR_SIZE: usize = mem::size_of::<usize>();
 static MAGIC: u32 = 0xef;
 static RMAGIC: u32 = 0x5555;
 static PAGE_SIZE: u32 = 4096;
 const NBUCKETS: usize = 30;
-static realloc_srchlen: i32 = 4;	/* 4 should be plenty, -1 =>'s whole list */
+static REALLOC_SRCHLEN: i32 = 4;    /* 4 should be plenty, -1 =>'s whole list */
 
 cfg_if::cfg_if! {
     if #[cfg(RCHECK)] {
@@ -17,6 +18,7 @@ cfg_if::cfg_if! {
         static RSLOP: u32 = 0;
     }
 }
+
 
 #[repr(C)]
 struct Ovu {
@@ -44,7 +46,7 @@ static mut PAGE_BUCKET: u32 = u32::MAX;
 #[cfg(MSTATS)]
 static mut NMALLOC: [u32; NBUCKETS] = [0; NBUCKETS];
 
-unsafe fn kmalloc(nbytes: usize) -> *mut u8 {
+pub unsafe fn kmalloc(nbytes: usize) -> *mut u8 {
     let mut overhead: *mut Overhead = ptr::null_mut();
     let mut bucket;
     let mut n: i32;
@@ -114,7 +116,6 @@ unsafe fn kmalloc(nbytes: usize) -> *mut u8 {
         if #[cfg(MSTATS)] {
             nmalloc[bucket] += 1;
         }
-
     }
 
     cfg_if::cfg_if! {
@@ -165,13 +166,13 @@ unsafe fn morecore(bucket: u32) {
     }
 }
 
-unsafe fn kcalloc(nelem: usize, elsize: usize) -> *mut u8 {
+pub unsafe fn kcalloc(nelem: usize, elsize: usize) -> *mut u8 {
     let mut ptr = kmalloc(nelem * elsize);
     libc::memset(ptr as *mut libc::c_void, 0, nelem * elsize);
     return ptr;
 }
 
-unsafe fn realloc(cp: *mut u8, nbytes: usize) -> *mut u8 {
+pub unsafe fn realloc(cp: *mut u8, nbytes: usize) -> *mut u8 {
     let mut onb: u32;
     let mut i: i32;
     let mut overhead: *mut Overhead;
@@ -204,7 +205,7 @@ unsafe fn realloc(cp: *mut u8, nbytes: usize) -> *mut u8 {
         //
 
         i = findbucket(overhead, 1);
-        let temp = findbucket(overhead, realloc_srchlen);
+        let temp = findbucket(overhead, REALLOC_SRCHLEN);
         if i < 0 && temp < 0 {
             i = NBUCKETS as i32;
         }
@@ -271,7 +272,7 @@ unsafe fn findbucket(freep: *mut Overhead, srchlen: i32) -> i32 {
                 1
             };
 
-            if inter as usize == srchlen as usize{
+            if inter as usize == srchlen as usize {
                 break;
             }
             if p == freep {
@@ -284,7 +285,7 @@ unsafe fn findbucket(freep: *mut Overhead, srchlen: i32) -> i32 {
     return -1;
 }
 
-unsafe fn kfree(cp: *mut u8) {
+pub unsafe fn kfree(cp: *mut u8) {
     let mut size: i32;
     let mut overhead: *mut Overhead;
 
@@ -323,8 +324,12 @@ mod tests {
         unsafe {
             let p = kmalloc(15);
             *p = 32;
+            assert_eq!(*p, 32);
             kfree(p);
         }
     }
 
+    fn stress_test() {
+
+    }
 }
