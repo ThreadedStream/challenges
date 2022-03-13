@@ -8,6 +8,7 @@ static MAGIC: u32 = 0xef;
 static RMAGIC: u32 = 0x5555;
 static PAGE_SIZE: u32 = 4096;
 const NBUCKETS: usize = 30;
+static realloc_srchlen: i32 = 4;	/* 4 should be plenty, -1 =>'s whole list */
 
 cfg_if::cfg_if! {
     if #[cfg(RCHECK)] {
@@ -37,7 +38,7 @@ union Overhead {
 }
 
 static mut NEXTF: [*mut Overhead; NBUCKETS] = [ptr::null_mut(); NBUCKETS];
-static mut PAGE_SZ: u32 = u32::MAX;
+static mut PAGE_SZ: u32 = 0;
 static mut PAGE_BUCKET: u32 = u32::MAX;
 
 #[cfg(MSTATS)]
@@ -75,11 +76,11 @@ unsafe fn kmalloc(nbytes: usize) -> *mut u8 {
     if nbytes <= n as usize {
         cfg_if::cfg_if! {
             if #[cfg(RCHECK)] {
-                amt = 8;
-                bucket = 0;
-            } else {
                 amt = 16;
                 bucket = 1;
+            } else {
+                amt = 8;
+                bucket = 0;
             }
         }
         n = -(mem::size_of::<Overhead>() as i32 + RSLOP as i32);
@@ -87,7 +88,7 @@ unsafe fn kmalloc(nbytes: usize) -> *mut u8 {
         amt = PAGE_SZ;
         bucket = PAGE_BUCKET;
     }
-    while nbytes > (amt + n as u32) as usize {
+    while nbytes > (amt as i32 + n) as usize {
         amt <<= 1;
         if amt == 0 {
             return ptr::null_mut();
@@ -124,7 +125,7 @@ unsafe fn kmalloc(nbytes: usize) -> *mut u8 {
         }
     }
 
-    return (overhead as usize + 1) as *mut u8;
+    return (overhead as usize + mem::size_of::<Overhead>()) as *mut u8;
 }
 
 unsafe fn morecore(bucket: u32) {
@@ -160,6 +161,7 @@ unsafe fn morecore(bucket: u32) {
     while nblks > 0 {
         (*overhead).ov_next = (overhead as usize + sz as usize) as *mut Overhead;
         overhead = (overhead as usize + sz as usize) as *mut Overhead;
+        nblks -= 1;
     }
 }
 
@@ -171,7 +173,7 @@ unsafe fn kcalloc(nelem: usize, elsize: usize) -> *mut u8 {
 
 unsafe fn realloc(cp: *mut u8, nbytes: usize) -> *mut u8 {
     let mut onb: u32;
-    let i: i32;
+    let mut i: i32;
     let mut overhead: *mut Overhead;
     let mut res: *mut u8;
     let mut was_alloced: i32 = 0;
@@ -183,39 +185,146 @@ unsafe fn realloc(cp: *mut u8, nbytes: usize) -> *mut u8 {
         kfree(cp);
         return ptr::null_mut();
     }
-    overhead = cp - mem::size_of::<Overhead>() as *mut Overhead;
-    if (*(*overhead).ovu).ovu_magic == MAGIC as u8{
+    overhead = (cp as usize - mem::size_of::<Overhead>()) as *mut Overhead;
+    if (*(*overhead).ovu).ovu_magic == MAGIC as u8 {
         was_alloced += 1;
         i = (*(*overhead).ovu).ovu_index as i32;
     } else {
-         // Already free, doing "compaction".
-         //    Search for the old block of memory on the
-         //    free list.  First, check the most common
-         //     case (last element free'd), then (this failing)
-         //     the last ``realloc_srchlen'' items free'd.
-         // If all lookups fail, then assume the size of
-         //     the memory block being realloc'd is the
-         //     largest possible (so that all "nbytes" of new
-         //     memory are copied into).  Note that this could cause
-         //     a memory fault if the old area was tiny, and the moon
-         //     is gibbous.  However, that is very unlikely.
-         //
+        // Already free, doing "compaction".
+        //    Search for the old block of memory on the
+        //    free list.  First, check the most common
+        //     case (last element free'd), then (this failing)
+        //     the last ``realloc_srchlen'' items free'd.
+        // If all lookups fail, then assume the size of
+        //     the memory block being realloc'd is the
+        //     largest possible (so that all "nbytes" of new
+        //     memory are copied into).  Note that this could cause
+        //     a memory fault if the old area was tiny, and the moon
+        //     is gibbous.  However, that is very unlikely.
+        //
 
         i = findbucket(overhead, 1);
         let temp = findbucket(overhead, realloc_srchlen);
         if i < 0 && temp < 0 {
             i = NBUCKETS as i32;
         }
+    }
 
-        onb = 1 << (i + 3);
-        if onb < PAGE_SZ {
-            onb -= mem::size_of::<Overhead>() + RSPLOP;
+    onb = 1 << (i + 3);
+    if onb < PAGE_SZ {
+        onb -= mem::size_of::<Overhead>() as u32 + RSLOP as u32;
+    } else {
+        onb += PAGE_SZ - mem::size_of::<Overhead>() as u32 - RSLOP as u32;
+    }
+
+    if was_alloced > 0 {
+        if i > 0 {
+            i = 1 << (i + 2);
+            if i < PAGE_SZ as i32 {
+                i -= mem::size_of::<Overhead>() as i32 + RSLOP as i32;
+            } else {
+                i += PAGE_SZ as i32 - mem::size_of::<Overhead>() as i32 - RSLOP as i32;
+            }
+        }
+        if nbytes <= onb as usize && nbytes > i as usize {
+            cfg_if::cfg_if! {
+                    if #[cfg(RCHECK)] {
+                        (*(*overhead).ovu).ovu_size =  (nbytes + RSLOP - 1) & ~(RSLOP - 1);
+                        (op + 1) as usize + (*(*overhead).ovu).ovu_size = RMAGIC;
+                    }
+            }
+            return cp;
         } else {
-            onb += PAGE_SZ
+            kfree(cp);
         }
     }
+    res = kmalloc(nbytes);
+    if res == ptr::null_mut() {
+        return ptr::null_mut();
+    }
+
+    if cp != res {
+        let p = if nbytes < onb as usize {
+            nbytes
+        } else {
+            onb as usize
+        };
+
+        libc::memcpy(res as *mut libc::c_void, cp as *const libc::c_void, p);
+    }
+
+    return res;
 }
 
 unsafe fn findbucket(freep: *mut Overhead, srchlen: i32) -> i32 {
+    let mut p: *mut Overhead;
+    let mut i: i32;
+    let mut j: i32;
+
+    for i in 0..NBUCKETS as i32 {
+        j = 0;
+        p = NEXTF[i as usize];
+        loop {
+            let inter = if p as usize == 0 || j == 0 {
+                0
+            } else {
+                1
+            };
+
+            if inter as usize == srchlen as usize{
+                break;
+            }
+            if p == freep {
+                return i;
+            }
+            j += 1;
+        }
+    }
+
+    return -1;
+}
+
+unsafe fn kfree(cp: *mut u8) {
+    let mut size: i32;
+    let mut overhead: *mut Overhead;
+
+    if cp == ptr::null_mut() {
+        return;
+    }
+    overhead = (cp as usize - mem::size_of::<Overhead>()) as *mut Overhead;
+    kassert!((*(*overhead).ovu).ovu_magic as u32 == MAGIC);
+    //kassert!((*(*overhead).ovu).ovu_rmagic == RMAGIC);
+    //ASSERT(*(u_short *)(op + 1) + op->ov_size) == RMAGIC);
+    size = (*(*overhead).ovu).ovu_index as i32;
+    kassert!(size < NBUCKETS as i32);
+    (*overhead).ov_next = NEXTF[size as usize];
+    NEXTF[size as usize] = overhead;
+}
+
+unsafe fn kmalloc_usable_size(cp: *mut u8) -> usize {
+    let mut overhead: *mut Overhead;
+
+    if cp == ptr::null_mut() {
+        return 0;
+    }
+
+    overhead = (cp as usize - mem::size_of::<Overhead>()) as *mut Overhead;
+    kassert!((*(*overhead).ovu).ovu_magic as u32 == MAGIC);
+    return (*(*overhead).ovu).ovu_index as usize;
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn alloc() {
+        unsafe {
+            let p = kmalloc(15);
+            *p = 32;
+            kfree(p);
+        }
+    }
 
 }
