@@ -21,6 +21,7 @@ cfg_if::cfg_if! {
 
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 struct Ovu {
     ovu_magic: u8,
     // magic number
@@ -34,21 +35,22 @@ struct Ovu {
 }
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 union Overhead {
     ov_next: *mut Overhead,
-    ovu: *mut Ovu,
+    ovu: Ovu,
 }
 
 static mut NEXTF: [*mut Overhead; NBUCKETS] = [ptr::null_mut(); NBUCKETS];
 static mut PAGE_SZ: u32 = 0;
-static mut PAGE_BUCKET: u32 = u32::MAX;
+static mut PAGE_BUCKET: i32 = -1;
 
 #[cfg(MSTATS)]
 static mut NMALLOC: [u32; NBUCKETS] = [0; NBUCKETS];
 
 pub unsafe fn kmalloc(nbytes: usize) -> *mut u8 {
     let mut overhead: *mut Overhead = ptr::null_mut();
-    let mut bucket;
+    let mut bucket: i32;
     let mut n: i32;
     let mut amt;
 
@@ -61,7 +63,8 @@ pub unsafe fn kmalloc(nbytes: usize) -> *mut u8 {
             n += PAGE_SZ as i32;
         }
         if n > 0 {
-            if libc::sbrk(n as libc::intptr_t) as usize == usize::MAX {
+            let interm = libc::sbrk(n as libc::intptr_t);
+            if interm as isize == -1 {
                 return ptr::null_mut();
             }
         }
@@ -109,8 +112,8 @@ pub unsafe fn kmalloc(nbytes: usize) -> *mut u8 {
     }
 
     NEXTF[bucket as usize] = (*overhead).ov_next;
-    (*(*overhead).ovu).ovu_magic = MAGIC as u8;
-    (*(*overhead).ovu).ovu_index = bucket as u8;
+    (*overhead).ovu.ovu_magic = MAGIC as u8;
+    (*overhead).ovu.ovu_index = bucket as u8;
 
     cfg_if::cfg_if! {
         if #[cfg(MSTATS)] {
@@ -129,25 +132,21 @@ pub unsafe fn kmalloc(nbytes: usize) -> *mut u8 {
     return (overhead as usize + mem::size_of::<Overhead>()) as *mut u8;
 }
 
-unsafe fn morecore(bucket: u32) {
+unsafe fn morecore(bucket: i32) {
     let mut overhead: *mut Overhead;
-    let mut sz;
-    let mut amt;
-    let mut nblks;
+    let mut sz: i32;
+    let mut amt: i32;
+    let mut nblks: i32;
 
 
     sz = 1 << (bucket + 3);
     kassert!(sz > 0);
 
-    if sz <= 0 {
-        return;
-    }
-
-    if sz < PAGE_SZ {
-        amt = PAGE_SZ;
+    if sz < PAGE_SZ as i32 {
+        amt = PAGE_SZ as i32;
         nblks = amt / sz;
     } else {
-        amt = sz + PAGE_SZ;
+        amt = sz + PAGE_SZ as i32;
         nblks = 1;
     }
 
@@ -160,8 +159,8 @@ unsafe fn morecore(bucket: u32) {
     NEXTF[bucket as usize] = overhead;
     nblks -= 1;
     while nblks > 0 {
-        (*overhead).ov_next = (overhead as usize + sz as usize) as *mut Overhead;
-        overhead = (overhead as usize + sz as usize) as *mut Overhead;
+        (*overhead).ov_next = (overhead as i32 + sz) as *mut Overhead;
+        overhead = (overhead as i32 + sz) as *mut Overhead;
         nblks -= 1;
     }
 }
@@ -187,9 +186,9 @@ pub unsafe fn realloc(cp: *mut u8, nbytes: usize) -> *mut u8 {
         return ptr::null_mut();
     }
     overhead = (cp as usize - mem::size_of::<Overhead>()) as *mut Overhead;
-    if (*(*overhead).ovu).ovu_magic == MAGIC as u8 {
+    if (*overhead).ovu.ovu_magic == MAGIC as u8 {
         was_alloced += 1;
-        i = (*(*overhead).ovu).ovu_index as i32;
+        i = (*overhead).ovu.ovu_index as i32;
     } else {
         // Already free, doing "compaction".
         //    Search for the old block of memory on the
@@ -293,10 +292,10 @@ pub unsafe fn kfree(cp: *mut u8) {
         return;
     }
     overhead = (cp as usize - mem::size_of::<Overhead>()) as *mut Overhead;
-    kassert!((*(*overhead).ovu).ovu_magic as u32 == MAGIC);
+    kassert!((*overhead).ovu.ovu_magic as u32 == MAGIC);
     //kassert!((*(*overhead).ovu).ovu_rmagic == RMAGIC);
     //ASSERT(*(u_short *)(op + 1) + op->ov_size) == RMAGIC);
-    size = (*(*overhead).ovu).ovu_index as i32;
+    size = (*overhead).ovu.ovu_index as i32;
     kassert!(size < NBUCKETS as i32);
     (*overhead).ov_next = NEXTF[size as usize];
     NEXTF[size as usize] = overhead;
@@ -310,8 +309,8 @@ unsafe fn kmalloc_usable_size(cp: *mut u8) -> usize {
     }
 
     overhead = (cp as usize - mem::size_of::<Overhead>()) as *mut Overhead;
-    kassert!((*(*overhead).ovu).ovu_magic as u32 == MAGIC);
-    return (*(*overhead).ovu).ovu_index as usize;
+    kassert!((*overhead).ovu.ovu_magic as u32 == MAGIC);
+    return (*overhead).ovu.ovu_index as usize;
 }
 
 

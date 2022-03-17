@@ -2,6 +2,7 @@
 name = "kmalloc"
 version = "0.0.1"
 edition = "2021"
+build = "build.rs"
 authors = ["threadedstream"]
 
 [lib]

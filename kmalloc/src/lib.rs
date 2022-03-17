@@ -13,7 +13,7 @@ pub struct Kmalloc;
 
 unsafe impl GlobalAlloc for Kmalloc {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        let ptr = kmalloc_c::kmalloc(layout.size());
+        let ptr = kmalloc::kmalloc(layout.size());
         if ptr.is_null() {
             handle_alloc_error(layout);
         }
@@ -21,7 +21,7 @@ unsafe impl GlobalAlloc for Kmalloc {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
-        kmalloc_c::kfree(ptr as *mut libc::c_void);
+        kmalloc::kfree(ptr);
     }
 }
 

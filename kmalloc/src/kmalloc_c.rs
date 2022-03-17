@@ -1,5 +1,5 @@
 
-#[link(name = "libkmalloc")]
+#[link(name = "kmalloc")]
 extern "C" {
     pub fn kmalloc(nbytes: usize) -> *mut libc::c_void;
     pub fn krealloc(cp: *mut libc::c_void, nbytes: usize) -> *mut libc::c_void;
