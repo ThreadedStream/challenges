@@ -47,7 +47,6 @@ extern "C" {
 
 fn main() {
     let go_map = unsafe { get_new_map() };
-
     println!("{:p}", go_map);
 }
 
