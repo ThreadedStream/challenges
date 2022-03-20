@@ -1,24 +1,17 @@
 package main
 
-// #include <stdlib.h>
 import "C"
 
-import "unsafe"
+import (
+	"fmt"
+)
 
-//export get_new_map
-func get_new_map()  *C.char {
-    x := new(int)
-    *x = 32
-    return (*C.char)(unsafe.Pointer(x))
-}
 
-//export c_malloc
-func c_malloc() *C.char {
-    ptr := (*C.char) (C.malloc(128))
-    *ptr = 32
-    return (*C.char)(ptr)
-}
-
-func main(){
-
+func main() {
+	fmt.Printf("attempt to allocate memory through stub...\n")
+	ptr := (*uint8) (internalAlloc(256, nil))
+	fmt.Printf("%p\n", ptr)
+	writeContents(ptr, 16)
+	printContents(ptr, 16)
+	// fmt.Printf("*ptr + 1 = %d\n", int(*(ptr + uint8(1))))
 }
