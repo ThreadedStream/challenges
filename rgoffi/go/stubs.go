@@ -6,23 +6,7 @@ import (
 
 // The following file contains all of the needed stubs and struct definitions
 
-type fixalloc struct {
-	size uintptr
-	first func(arg, p *uint8)
-	arg *uint8
-	list *mlink
-	chunk uintptr
-	nchunk uintptr
-	nalloc uintptr
-	inuse uintptr
-	stat *uint64
-	zero bool
-}
 
-//go:notinheap
-type mlink struct {
-	next *mlink
-}
 
 type _type struct {
 	size       uintptr
@@ -41,19 +25,17 @@ type _type struct {
 //go:linkname mallocgc runtime.mallocgc
 func mallocgc(size uintptr, typ *_type) *uint8
 
-//go:linkname internalAlloc runtime.sysAlloc
-func internalAlloc(n uintptr, sysStat *uint64) *uint8
+//go:linkname systemAlloc runtime.sysAlloc
+func systemAlloc(n uintptr, sysStat *uint64) *uint8
 
-//go:linkname internalFree runtime.sysFree
-func internalFree(v *uint8, n uintptr, sysStat *uint64)
+//go:linkname systemFree runtime.sysFree
+func systemFree(v *uint8, n uintptr, sysStat *uint64)
 
-//export allocate_go_memory
-func allocate_go_memory(n uintptr) *uint8{
-	return internalAlloc(n, nil)
-}
+//go:linkname persistentAlloc runtime.persistentalloc
+func persistentAlloc(size, align uintptr, sysStat *uint64) *uint8
 
-//export deallocate_go_memory
-func deallocate_go_memory(v *uint8, n uintptr) {
-	internalFree(v, n, nil)
-}
+//go:linkname memclrNoHeapPointers runtime.memclrNoHeapPointers
+func memclrNoHeapPointers(ptr *uint8, size uintptr)
 
+// //go:linkname main.(*fixalloc).alloc runtime.(*fixalloc).alloc
+// func (f *fixalloc) alloc() *uint8

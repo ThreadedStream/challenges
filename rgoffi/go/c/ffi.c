@@ -21,10 +21,16 @@ void read_memory(uint8_t* ptr, intptr_t size) {
 }
 
 int main() {
-	puts("attempt to invoke the function...\n");
-	uint8_t *ptr = allocate_go_memory(256);
-	write_memory(ptr, 16);
-	read_memory(ptr, 16);
+	// puts("allocating a fresh memory...\n");
+	// uint8_t *ptr = allocate_go_memory(256);
+	// write_memory(ptr, 16);
+	// read_memory(ptr, 16);
+	// printf("ptr = %p\n", ptr);
+	// printf("deallocating it...\n");
+	// deallocate_go_memory(ptr, 256);
+
+	uint8_t *ptr = persistent_alloc(256, 16, NULL);
 	printf("ptr = %p\n", ptr);
 	deallocate_go_memory(ptr, 256);
+	return 0;
 }
