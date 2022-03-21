@@ -39,3 +39,4 @@ func memclrNoHeapPointers(ptr *uint8, size uintptr)
 
 // //go:linkname main.(*fixalloc).alloc runtime.(*fixalloc).alloc
 // func (f *fixalloc) alloc() *uint8
+
