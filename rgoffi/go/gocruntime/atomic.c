@@ -7,7 +7,6 @@ int32_t swap_int32(int32_t *addr, int32_t new) {
 	return (int32_t) _xchg((uint32_t*) addr, (uint32_t) new);
 }
 
-
 int64_t swap_int64(int64_t *addr, int64_t new) {
 	return (int64_t) _xchg64((uint64_t*) addr, (uint64_t) new);
 }
@@ -15,7 +14,6 @@ int64_t swap_int64(int64_t *addr, int64_t new) {
 uint32_t swap_uint32(uint32_t *addr, uint32_t new) {
 	return _xchg(addr, new);
 }
-
 
 uint64_t swap_uint64(uint64_t * addr, uint64_t new) {
 	return _xchg64(addr, new);
@@ -78,34 +76,56 @@ int32_t load_int32(int32_t *addr) {
 }
 
 // LoadInt64 atomically loads *addr.
-int64_t load_int64(int64_t *addr) { return *addr; }
+int64_t load_int64(int64_t *addr) { 
+	return _load64((uint64_t*) addr);
+}
 
 // LoadUint32 atomically loads *addr. 
-uint32_t load_uint32(uint32_t *addr) { return 0;}
+uint32_t load_uint32(uint32_t *addr) { 
+	return _load(addr);
+}
 
 // LoadUint64 atomically loads *addr.
-uint64_t load_uint64(uint64_t *addr) { return 0; }
+uint64_t load_uint64(uint64_t *addr) { 
+	return _load64(addr);
+}
 
 // LoadUintptr atomically loads *addr.
-uintptr_t load_uintptr(uintptr_t *addr) { return 0; }
+uintptr_t load_uintptr(uintptr_t *addr) { 
+	return _load64((uint64_t*) addr);
+}
 
 // LoadPointer atomically loads *addr.
-void *load_pointer(void **addr) { return NULL; }
+void *load_pointer(void **addr) { 
+	return _loadp(addr); 
+}
 
 // StoreInt32 atomically stores val into *addr.
-void store_int32(int32_t *addr, int32_t val) {}
+void store_int32(int32_t *addr, int32_t val) {
+	_store((uint32_t*) addr, (uint32_t) val);
+}	
 
 // StoreInt64 atomically stores val into *addr.
-void store_int64(int64_t *addr, int64_t val) {}
+void store_int64(int64_t *addr, int64_t val) {
+	_store64((uint64_t*) addr, (uint64_t) val);
+}
 
 // StoreUint32 atomically stores val into *addr.
-void store_uint32(uint32_t *addr, uint32_t val) {}
+void store_uint32(uint32_t *addr, uint32_t val) {
+	_store(addr, val);
+}
 
 // StoreUint64 atomically stores val into *addr.
-void store_uint64(uint64_t *addr, uint64_t val) {}
+void store_uint64(uint64_t *addr, uint64_t val) {
+	_store64(addr, val);
+}
 
 // StoreUintptr atomically stores val into *addr.
-void store_uintptr(uintptr_t *addr, uintptr_t val) {}
+void store_uintptr(uintptr_t *addr, uintptr_t val) {
+	_store64((uint64_t*) addr, (uint64_t) val);
+}
 
 // StorePointer atomically stores val into *addr.
-void store_pointer(void **addr, void *val) {}
+void store_pointer(void **addr, void *val) {
+	_storep(addr, val);
+}	

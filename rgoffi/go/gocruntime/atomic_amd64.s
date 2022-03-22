@@ -13,6 +13,8 @@
 .global _xchg64
 .global _xchgp
 .global _store
+.global _storep
+.global _store64
 .global _store8
 .global _or8
 .global _and8
@@ -85,7 +87,7 @@ _xchg64:
 
 _xchgp:
 	jmp _xchg64
-	
+
 _store_no_wb:
 	xchgq %rsi, (%rdi)
 	ret
@@ -101,6 +103,9 @@ _store8:
 _store64:
 	xchgq %rsi, (%rdi)
 	ret
+
+_storep:
+	jmp _store64
 
 _store_int32:
 	jmp _store

@@ -89,3 +89,4 @@ void store_uintptr(uintptr_t *addr, uintptr_t val);
 
 // StorePointer atomically stores val into *addr.
 void store_pointer(void **addr, void *val);
+

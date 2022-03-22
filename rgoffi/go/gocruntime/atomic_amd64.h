@@ -1,9 +1,16 @@
 
-uint32_t __attribute__((noinline)) _load(uint32_t *ptr);
+#ifdef __GNUC__
+	#define NOINLINE __attribute__((noinline))
+#else
+	#define NOINLINE
+#endif 
 
-void* __attribute__((noinline)) _loadp(void **ptr);
 
-uint64_t __attribute__((noinline)) _load64(uint64_t *ptr);
+uint32_t NOINLINE _load(uint32_t *ptr);
+
+void* NOINLINE _loadp(void **ptr);
+
+uint64_t NOINLINE _load64(uint64_t *ptr);
 
 // compare and set
 extern uint8_t _cas(int32_t *ptr, int32_t old, int32_t new);
@@ -31,6 +38,12 @@ extern void * _xchgp(void **ptr, void *new);
 
 // 32-bit store
 extern void _store(uint32_t *ptr, uint32_t val);
+
+// 64-bit store
+extern void _store64(uint64_t *ptr, uint64_t val);
+
+// pointer store
+extern void _storep(void **ptr, void *val);
 
 // 8-bit store
 extern void _store8(uint8_t *ptr, uint8_t val);
