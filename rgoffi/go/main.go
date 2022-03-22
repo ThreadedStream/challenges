@@ -7,7 +7,6 @@ import (
 	"unsafe"
 )
 
-
 //export allocate_go_memory
 func allocate_go_memory(n uintptr) *uint8{
 	return systemAlloc(n, nil)

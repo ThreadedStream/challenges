@@ -8,8 +8,10 @@
 .global _casuintptr
 .global _casrel
 .global _xadd
+.global _xadd64
 .global _xchg
 .global _xchg64
+.global _xchgp
 .global _store
 .global _store8
 .global _or8
@@ -81,6 +83,9 @@ _xchg64:
 	xchg %rax, (%rdi)
 	ret
 
+_xchgp:
+	jmp _xchg64
+	
 _store_no_wb:
 	xchgq %rsi, (%rdi)
 	ret
