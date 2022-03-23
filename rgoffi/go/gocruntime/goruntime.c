@@ -7,7 +7,19 @@
 #include "atomic.h"
 #include "../libpreload.h"
 
+struct user;
+
+typedef struct user user_t;
+
 typedef void * (*MALLOCGC_FUNC_PTR) (int64_t size, void *typ, uint8_t needzero);
+
+struct user {
+    const char* name;
+    int age;
+    int weight;
+    int height;
+    user_t *next;
+};
 
 void write_memory(uint8_t *ptr, intptr_t size) {
 	srand(time(NULL));
@@ -61,4 +73,6 @@ int main() {
     uint32_t *temp = (uint32_t*) swap_pointer((void**) &ptr, (void*) &val);
     printf("*ptr = %d\n val = %d\n", *ptr, val);
 }
+
+
 
