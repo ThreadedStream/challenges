@@ -76,6 +76,8 @@ struct dlog_per_m;
 // TODO(threadedstream): to be moved to os_linux
 struct m_os;
 struct held_lock_info;
+struct func_info;
+struct bitvector;
 struct cgocallers;
 struct note;
 struct libcall;
@@ -100,6 +102,8 @@ typedef struct libcall libcall_t;
 typedef struct m m_t;
 typedef struct stack stack_t;
 typedef struct _panic _panic_t;
+typedef struct bitvector bitvector_t;
+typedef struct func_info func_info_t;
 typedef struct _defer _defer_t;
 typedef struct gobuf gobuf_t;
 typedef struct wait_reason wait_reason_t;
@@ -110,6 +114,58 @@ typedef struct glist glist_t;
 typedef struct mspan mspan_t;
 typedef struct sysmontick sysmontick_t;
 typedef struct time_histogram time_histogram_t;
+
+struct _defer {
+	uint8_t started;
+	uint8_t heap;
+	// openDefer indicates that this _defer is for a frame with open-coded
+	// defers. We have only one defer record for the entire frame (which may
+	// currently have 0, 1, or more defers active).
+	uint8_t open_defer; 
+	uintptr_t sp;         // sp at time of defer
+	uintptr_t pc;         // pc at time of defer
+	void (*fn)();          // can be nil for open-coded defers
+	_panic_t *_panic;     // panic that is running defer
+	_defer_t *link;       // next defer on G; can point to either heap or stack!
+
+	// If openDefer is true, the fields below record values about the stack
+	// frame and associated function that has the open-coded defer(s). sp
+	// above will be the sp for the frame, and pc will be address of the
+	// deferreturn call in the function.
+	void *fd;   // funcdata for the function associated with the frame
+	uintptr_t varp;         // value of varp for the stack frame
+	// framepc is the current pc associated with the stack frame. Together,
+	// with sp above (which is the sp associated with the stack frame),
+	// framepc/sp can be used as pc/sp pair to continue a stack trace via
+	// gentraceback().
+	uintptr_t framepc; 
+};
+
+struct _panic {
+	void *argp; // pointer to arguments of deferred call run during panic; cannot move - known to liblink
+	// in original source file, arg is annotated with type any
+	void *arg;                   // argument to panic
+	_panic_t *link;              // link to earlier panic
+	uintptr_t pc;                // where to return to in runtime if this panic is bypassed
+	void *sp; // where to return to in runtime if this panic is bypassed
+	uint8_t recovered;            // whether this panic is over
+	uint8_t aborted;              // the panic was aborted
+	uint8_t goexit;    
+};
+
+// stack traces
+struct stkframe {
+	func_info_t fn;   // function being run
+	uintptr_t pc;          // program counter within fn
+	uintptr_t continpc;    // program counter where execution can continue, or 0 if not
+	uintptr_t lr;    // program counter at caller aka link register
+	uintptr_t sp;    // stack pointer at pc
+	uintptr_t fp;   // stack pointer at caller aka frame pointer
+	uintptr_t varp;    // top of local variables
+	uintptr_t argp;    // pointer to function arguments
+	uintptr_t arglen;    // number of bytes at argp
+	bitvector_t *argmap;    // force use of this argmap
+};
 
 struct stack {};
 struct gqueue{};
