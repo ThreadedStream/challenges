@@ -159,45 +159,45 @@ enum {
 };
 
 
-struct stack;
-struct _panic;
-struct _defer;
-struct gobuf;
-struct ancestor_info;
-struct sudog;
-struct timer;
-struct m;
-struct g;
-struct p;
-struct glist;
-struct forcegcstate;
-// TODO(threadedstream): to be moved to histogram
-struct time_histogram;
-// TODO(threadedstream): to be moved to proc
-struct sysmontick;
-struct mcache;
-struct persistent_alloc;
-struct gc_work;
-struct lfnode;
-struct itab;
-struct wbbuf;
-struct mutex;
-struct gqueue;
-struct page_cache;
-struct gsignalstack;
-// TODO(threadedstream): to be moved to mheap
-struct mspan;
-// TODO(threadedstream): to be moved to os_linux_generic
-struct sigset;
-struct dlog_per_m;
-// TODO(threadedstream): to be moved to os_linux
-struct m_os;
-struct held_lock_info;
-struct func_info;
-struct bitvector;
-struct cgocallers;
-struct note;
-struct libcall;
+// struct stack;
+// struct _panic;
+// struct _defer;
+// struct gobuf;
+// struct ancestor_info;
+// struct sudog;
+// struct timer;
+// struct m;
+// struct g;
+// struct p;
+// struct glist;
+// struct forcegcstate;
+// // TODO(threadedstream): to be moved to histogram
+// struct time_histogram;
+// // TODO(threadedstream): to be moved to proc
+// struct sysmontick;
+// struct mcache;
+// struct persistent_alloc;
+// struct gc_work;
+// struct lfnode;
+// struct itab;
+// struct wbbuf;
+// struct mutex;
+// struct gqueue;
+// struct page_cache;
+// struct gsignalstack;
+// // TODO(threadedstream): to be moved to mheap
+// struct mspan;
+// // TODO(threadedstream): to be moved to os_linux_generic
+// struct sigset;
+// struct dlog_per_m;
+// // TODO(threadedstream): to be moved to os_linux
+// struct m_os;
+// struct held_lock_info;
+// struct func_info;
+// struct bitvector;
+// struct cgocallers;
+// struct note;
+// struct libcall;
 
 typedef struct p p_t;
 typedef struct g g_t;
