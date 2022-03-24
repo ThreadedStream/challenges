@@ -4,6 +4,8 @@ import (
 	"unsafe"
 )
 
+// slab-like allocator of fixed sizes
+
 const (
 	_FixAllocChunk = 0x10 << 10
 )

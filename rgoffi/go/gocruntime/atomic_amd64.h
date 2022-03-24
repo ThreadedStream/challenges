@@ -1,9 +1,11 @@
+#ifndef ATOMIC_AMD64_H
+#define ATOMIC_AMD64_H
 
 #ifdef __GNUC__
 	#define NOINLINE __attribute__((noinline))
 #else
 	#define NOINLINE
-#endif 
+#endif // __GNUC__
 
 
 uint32_t NOINLINE _load(uint32_t *ptr);
@@ -61,4 +63,4 @@ extern uint32_t _or(uint32_t volatile *ptr, uint32_t val);
 extern uint32_t _and(uint32_t volatile *ptr, uint32_t val);
 
 
-
+#endif // ATOMIC_AMD64_H

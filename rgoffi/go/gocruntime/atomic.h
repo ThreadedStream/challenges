@@ -1,3 +1,5 @@
+#ifndef ATOMIC_H
+#define ATOMIC_H
 
 // SwapInt32 atomically stores new into *addr and returns the previous *addr value.
 int32_t swap_int32(int32_t *addr, int32_t new);
@@ -90,3 +92,4 @@ void store_uintptr(uintptr_t *addr, uintptr_t val);
 // StorePointer atomically stores val into *addr.
 void store_pointer(void **addr, void *val);
 
+#endif // ATOMIC_H

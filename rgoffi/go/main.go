@@ -7,6 +7,12 @@ import (
 	"unsafe"
 )
 
+// TODO(threadedstream): play with that a bit
+// func (
+// 	deallocate_go_memory(n uintptr) *uint8 {
+// 	}
+// )
+
 //export allocate_go_memory
 func allocate_go_memory(n uintptr) *uint8{
 	return systemAlloc(n, nil)
@@ -27,18 +33,41 @@ func memclr_noheap_pointers(ptr *uint8, size uintptr) {
 	memclrNoHeapPointers(ptr, size)
 }
 
+//export runtime_lock2
+func runtime_lock2(m *uint8) {
+	lock2(m)
+}
+
+//export runtime_unlock2
+func runtime_unlock2(m *uint8) {
+	unlock2(m)
+}
+
+//export runtime_extend_random
+func runtime_extend_random(r []byte, n int) {
+	extendRandom(r, n)
+}
+
+
+
 //go:notinheap
 type node struct {
 	data int64 // 8
 	next *node // 8
 }
 
-
 // //export fix_allocate
 // func fix_allocate(f unsafe.Pointer) *uint8 {	
 // 	falloc := (*fixalloc) (f)
 // 	return falloc.fixalloc_alloc()
 // }
+
+
+//go:linkname runtime.mallocgc main.mallocgc
+func mallocgc(size uintptr, typ *_type) *uint8 {
+	return nil
+}
+
 
 func fixallocSample() {
 	f := &fixalloc{}
@@ -63,5 +92,7 @@ func systemAllocSample() {
 }
 
 func main() {
-	fixallocSample()
+	n := new(int)
+	*n = 32
+	fmt.Printf("%x", n)	
 }

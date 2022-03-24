@@ -7,7 +7,6 @@ import (
 // The following file contains all of the needed stubs and struct definitions
 
 
-
 type _type struct {
 	size       uintptr
 	ptrdata    uintptr
@@ -22,8 +21,8 @@ type _type struct {
 	ptrToThis  int32
 }
 
-//go:linkname mallocgc runtime.mallocgc
-func mallocgc(size uintptr, typ *_type) *uint8
+// //go:linkname mallocgc runtime.mallocgc
+// func mallocgc(size uintptr, typ *_type) *uint8
 
 //go:linkname systemAlloc runtime.sysAlloc
 func systemAlloc(n uintptr, sysStat *uint64) *uint8
@@ -37,6 +36,14 @@ func persistentAlloc(size, align uintptr, sysStat *uint64) *uint8
 //go:linkname memclrNoHeapPointers runtime.memclrNoHeapPointers
 func memclrNoHeapPointers(ptr *uint8, size uintptr)
 
+//go:linkname lock2 runtime.lock2
+func lock2(m *uint8)
+
+//go:linkname unlock2 runtime.unlock2
+func unlock2(m *uint8)
+
+//go:linkname extendRandom runtime.extendRandom
+func extendRandom(r []byte, n int)
+
 // //go:linkname main.(*fixalloc).alloc runtime.(*fixalloc).alloc
 // func (f *fixalloc) alloc() *uint8
-

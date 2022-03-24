@@ -1,3 +1,5 @@
+#ifndef FIXALLOC_H
+#define FIXALLOC_H
 
 struct mlink {
 	struct mlink *next;
@@ -12,3 +14,5 @@ struct fixalloc {
 	uintptr_t inuse;
 	unsigned char zero;
 };
+
+#endif // FIXALLOC_H
